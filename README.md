@@ -17,19 +17,46 @@ Optional integrations:
 
 Add the plugin to Neovim's runtime path with your preferred plugin manager, then call `setup()`:
 
+### Example setup using `lazy.nvim`
+
 ```lua
--- example with using default options
-local ng_nav = require("wkwk.ng-nav").setup({
-  workspace = {
-    ignored_dirs = {
-      "node_modules",
-      ".git",
-      "dist",
-      ".nx",
-      ".angular",
+  {
+    "wkwk-hehe/Wkwk.NgNav",
+    name = "Wkwk.NgNav",
+    cond = function()
+      local root = vim.fs.root(0, { "angular.json", "nx.json" })
+      if not root then
+        return false
+      end
+      return true
+    end,
+    opts = {
+      workspace = {
+        ignored_dirs = {
+          "node_modules",
+          ".angular",
+          "dist",
+          ".git",
+          ".nx",
+        },
+      },
     },
+    config = function(opts)
+      local mod = require("wkwk.ng-nav")
+      local api = mod.Api
+      mod.setup(opts)
+      local uc = vim.api.nvim_create_user_command
+      uc("Atc", api.ViewTypeCheckBlock, { desc = "[Wkwk.NgNav] Display typecheck block under cursor" })
+      uc("At", api.GoToComponentTemplate, { desc = "[Wkwk.NgNav] Go to template file" })
+      uc("Ac", api.GoToComponentClass, { desc = "[Wkwk.NgNav] Go to component file" })
+      uc("As", api.GoToComponentStylesheet, { desc = "[Wkwk.NgNav] Go to stylesheet file" })
+      uc("Atv", function() api.GoToComponentTemplate({ split = "vsplit" }) end, { desc = "[Wkwk.NgNav] Open template file in vertical split" })
+      uc("Acv", function() api.GoToComponentClass({ split = "vsplit" }) end, { desc = "[Wkwk.NgNav] Open component file in vertical split" })
+      uc("Asv", function() api.GoToComponentStylesheet({ split = "vsplit" }) end, { desc = "[Wkwk.NgNav] Open stylesheet file in vertical split" })
+      uc("Ap", function () api.OpenProjects({ split = "tab split" }) end, { desc = "[Wkwk.NgNav] Select projects" })
+    end,
   },
-})
+
 ```
 
 ## API
