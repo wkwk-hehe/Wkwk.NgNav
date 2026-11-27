@@ -19,6 +19,12 @@
 ---@field split? NgNav.SplitOption Open the target in a horizontal split, vertical split, or new tab.
 ---@field reuseWin? boolean Focus an existing window showing the target instead of opening it again.
 
+---@class NgNav.ComponentFilesOption: NgNav.OpenOption
+---@field show_current? boolean Include the current file in the picker and mark it as current; defaults to false.
+---@field mode? NgNav.PickerMode Initial picker mode for Snacks; defaults to insert mode.
+
+---@alias NgNav.PickerMode "insert"|"normal"
+
 ---@alias NgNav.SplitOption
 ---| "split" # Open the target in a horizontal split.
 ---| "vsplit" # Open the target in a vertical split.
@@ -30,6 +36,7 @@
 ---@field GoToComponentStylesheet fun(opts?: NgNav.OpenOption) Open the current component's stylesheet.
 ---@field GoToComponentTemplate fun(opts?: NgNav.OpenOption) Open the current component's template.
 ---@field GoToComponentClass fun(opts?: NgNav.OpenOption) Find and open component classes referencing the current template.
+---@field GoToComponentFiles fun(opts?: NgNav.ComponentFilesOption) Pick among the current component's class, template, and stylesheets.
 
 local NgNav = {}
 
@@ -97,6 +104,12 @@ local function setupApi()
 	---@param opts? NgNav.OpenOption
 	NgNav.Api.GoToComponentClass = function(opts)
 		require("wkwk.ng-nav.api.goto-class").goToComponentClass(opts)
+	end
+
+	---Picks between the current component's class, template, and stylesheets.
+	---@param opts? NgNav.ComponentFilesOption
+	NgNav.Api.GoToComponentFiles = function(opts)
+		require("wkwk.ng-nav.api.goto-component-files").goToComponentFiles(opts)
 	end
 end
 

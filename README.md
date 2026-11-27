@@ -70,6 +70,7 @@ ng_nav.Api.OpenProjects()
 ng_nav.Api.GoToComponentTemplate()
 ng_nav.Api.GoToComponentStylesheet()
 ng_nav.Api.GoToComponentClass()
+ng_nav.Api.GoToComponentFiles()
 ng_nav.Api.ViewTypeCheckBlock()
 ```
 
@@ -82,6 +83,17 @@ ng_nav.Api.GoToComponentClass({ split = "split" })
 ng_nav.Api.GoToComponentStylesheet({ reuseWin = true })
 ```
 
+`GoToComponentFiles()` opens a picker for the related component class, template, and stylesheets. It can be invoked from the class, template, or a conventionally named stylesheet. The current file is omitted by default; set `show_current = true` to include it and mark it as current:
+
+```lua
+ng_nav.Api.GoToComponentFiles({ show_current = true })
+ng_nav.Api.GoToComponentFiles({ show_current = true, split = "vsplit", mode = "normal" })
+```
+
+The picker uses `nvim-web-devicons` when available. With a chunk-aware picker such as Snacks, HTML uses `DiagnosticWarn` (orange), TypeScript uses `DiagnosticInfo` (blue), Sass/SCSS uses `Special` (pink/magenta), and CSS uses `DiagnosticHint` (cyan). Other `vim.ui.select` implementations receive plain text.
+
+`mode` chooses the initial Snacks picker focus: `"insert"` (the default) starts in the search input, and `"normal"` starts on the results list. Any omitted or unrecognized value falls back to insert mode. Pickers other than Snacks may ignore this option.
+
 ### Functions
 
 | Function | Behavior |
@@ -90,6 +102,7 @@ ng_nav.Api.GoToComponentStylesheet({ reuseWin = true })
 | `GoToComponentTemplate(opts?)` | Uses Angular Language Server to open the current component's template. |
 | `GoToComponentStylesheet(opts?)` | Finds stylesheet paths from component metadata or conventional sibling filenames. If multiple files match, prompts for one. |
 | `GoToComponentClass(opts?)` | Finds component classes referencing the current external template. Opens one match or lists multiple matches in the quickfix window. |
+| `GoToComponentFiles(opts?)` | Opens a picker for the related class, template, and stylesheet files; optionally includes the current file with `show_current = true`. |
 | `ViewTypeCheckBlock()` | Displays Angular's generated template type-check block in a reusable TypeScript scratch buffer. |
 
 ## Project discovery

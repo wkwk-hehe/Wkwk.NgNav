@@ -37,7 +37,7 @@ local STYLE_EXTENSIONS = { "scss", "sass", "css", "less" }
 ---@field open_uri fun(path: string, opts?: NgNav.OpenOption) Open a file or directory path, optionally in a split or tab.
 ---@field find_associated_stylesheets fun(filepath: string): string[] Find existing component stylesheets for a TypeScript or HTML file.
 ---@field get_angular_lsp_client fun(bufnr: integer): vim.lsp.Client? Get the Angular language server attached to a buffer, if any.
----@field request_client_command fun(command: string, callback: fun(err: lsp.ResponseError?, result: any, client: vim.lsp.Client)) Send an Angular LSP command and handle its response.
+---@field request_client_command fun(command: string, callback: fun(err: lsp.ResponseError?, result: any, client: vim.lsp.Client), on_error?: fun(err: lsp.ResponseError|string)) Send an Angular LSP command and handle its response.
 ---@field on_angular_workspace fun(callback: fun()) Run a callback only when the current buffer belongs to an Angular workspace.
 
 local M = {}
@@ -143,34 +143,52 @@ end
 ---Sends a custom command to the Angular language server for the current cursor position.
 ---@param command string Angular language server command name.
 ---@param callback fun(err: lsp.ResponseError?, result: any, client: vim.lsp.Client) Called with the response and client on success.
-function M.request_client_command(command, callback)
+---@param on_error? fun(err: lsp.ResponseError|string) Called if no client is attached, the request fails, or it cannot be sent.
+function M.request_client_command(command, callback, on_error)
 	local bufnr = vim.api.nvim_get_current_buf()
 	local client = M.get_angular_lsp_client(bufnr)
 	if not client then
 		vim.notify("[Wkwk.NgNav] No Angular language server attached to current buffer.", vim.log.levels.WARN)
+		if on_error then
+			on_error("No Angular language server attached to current buffer.")
+		end
 		return
 	end
 	local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
-	client:request(command, params, function(err, result)
+	local sent = client:request(command, params, function(err, result)
 		if err then
 			vim.notify(string.format("[Wkwk.NgNav] %s failed: %s", command, err.message or tostring(err)),
 				vim.log.levels.ERROR)
+			if on_error then
+				on_error(err)
+			end
 			return
 		end
 		callback(err, result, client)
 	end, bufnr)
+	if not sent then
+		local err = string.format("Could not send %s request.", command)
+		vim.notify("[Wkwk.NgNav] " .. err, vim.log.levels.ERROR)
+		if on_error then
+			on_error(err)
+		end
+	end
 end
 
 ---Checks Angular workspace membership before running a callback.
 ---@param callback fun() Called only when the current buffer belongs to an Angular workspace.
-M.on_angular_workspace = function(callback)
+---@param on_error? fun(err: lsp.ResponseError|string) Called if the check fails or the buffer is outside a workspace.
+M.on_angular_workspace = function(callback, on_error)
 	M.request_client_command("angular/isAngularCoreInOwningProject", function(_, yesItIs)
 		if not yesItIs then
 			vim.notify("[Wkwk.NgNav] Current file is not part of an Angular project.", vim.log.levels.INFO)
+			if on_error then
+				on_error("Current file is not part of an Angular project.")
+			end
 			return
 		end
 		callback()
-	end)
+	end, on_error)
 end
 
 return M
