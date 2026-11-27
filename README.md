@@ -47,7 +47,6 @@ Add the plugin to Neovim's runtime path with your preferred plugin manager, then
           vsplit = "<C-v>",
           tab = "<C-t>",
         },
-        disable_multi_select = true,
       },
     },
     config = function(opts)
@@ -83,9 +82,10 @@ ng_nav.Api.GoToComponentFiles()
 ng_nav.Api.ViewTypeCheckBlock()
 ```
 
-The first four functions accept optional window options:
+The navigation functions accept optional window options:
 
 ```lua
+ng_nav.Api.OpenProjects({ split = "vsplit", mode = "normal" })
 ng_nav.Api.GoToComponentTemplate({ split = "vsplit" })
 ng_nav.Api.GoToComponentStylesheet({ split = "tab split" })
 ng_nav.Api.GoToComponentClass({ split = "split" })
@@ -101,9 +101,9 @@ ng_nav.Api.GoToComponentFiles({ show_current = true, split = "vsplit", mode = "n
 
 The picker uses `nvim-web-devicons` when available. With a chunk-aware picker such as Snacks, HTML uses `DiagnosticWarn` (orange), TypeScript uses `DiagnosticInfo` (blue), Sass/SCSS uses `Special` (pink/magenta), and CSS uses `DiagnosticHint` (cyan). Other `vim.ui.select` implementations receive plain text.
 
-`component_files.default_mode` chooses the initial Snacks picker focus: `"insert"` (the default) starts in the search input, and `"normal"` starts on the results list. A per-call `mode` overrides that default. Omitted or unrecognized modes fall back to insert mode. Pickers other than Snacks may ignore this option.
+`component_files.default_mode` chooses the initial Snacks picker focus for both `GoToComponentFiles()` and `OpenProjects()`: `"insert"` (the default) starts in the search input, and `"normal"` starts on the results list. A per-call `mode` overrides that default, for example `OpenProjects({ mode = "normal" })`. Omitted or unrecognized modes fall back to insert mode. Pickers other than Snacks may ignore this option.
 
-The Snacks picker defaults to **Ctrl-X** to open the highlighted file in a horizontal split, **Ctrl-V** for a vertical split, and **Ctrl-T** in a new tab. Customize these with `component_files.keys.split`, `.vsplit`, and `.tab`; set a key to `false` to disable its action. The shortcuts work from the input or results list. `component_files.disable_multi_select` defaults to `true`, disabling **Tab**, **Shift-Tab**, and **Ctrl-A** for this picker; set it to `false` to restore Snacks' default selection bindings.
+The Snacks component and project pickers default to **Ctrl-X** to open the highlighted item in a horizontal split, **Ctrl-V** for a vertical split, and **Ctrl-T** in a new tab. For example, `OpenProjects({ split = "vsplit" })` opens the project directory in a vertical split on ordinary selection. Customize the picker shortcuts with `component_files.keys.split`, `.vsplit`, and `.tab`; set a key to `false` to disable its action. The shortcuts work from the input or results list. Multi-select keys (**Tab**, **Shift-Tab**, and **Ctrl-A**) are disabled for these pickers.
 
 ### Functions
 

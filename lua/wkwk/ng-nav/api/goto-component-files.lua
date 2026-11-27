@@ -171,14 +171,12 @@ local function show_picker(files, opts)
 	bind_split_key("vsplit", "ngnav_open_vsplit", "vertical split")
 	bind_split_key("tab", "ngnav_open_tab", "a new tab")
 
-	if component_config.disable_multi_select ~= false then
-		for _, key in ipairs({ "<Tab>", "<S-Tab>", "<C-a>" }) do
-			if input_keys[key] == nil then
-				input_keys[key] = false
-			end
-			if list_keys[key] == nil then
-				list_keys[key] = false
-			end
+	for _, key in ipairs({ "<Tab>", "<S-Tab>", "<C-a>" }) do
+		if input_keys[key] == nil then
+			input_keys[key] = false
+		end
+		if list_keys[key] == nil then
+			list_keys[key] = false
 		end
 	end
 

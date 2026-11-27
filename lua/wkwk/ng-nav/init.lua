@@ -16,7 +16,6 @@
 ---@class NgNav.Config.ComponentFiles
 ---@field default_mode? NgNav.PickerMode Initial Snacks picker mode; defaults to `insert`.
 ---@field keys? NgNav.ComponentFilesKeys Key bindings for opening a selected file in a split or tab.
----@field disable_multi_select? boolean Disable Snacks multi-select bindings in this picker; defaults to true.
 
 ---@class NgNav.ComponentFilesKeys
 ---@field split? string|false Key to open the selected file in a horizontal split; defaults to `<C-x>`.
@@ -34,6 +33,9 @@
 ---@field show_current? boolean Include the current file in the picker and mark it as current; defaults to false.
 ---@field mode? NgNav.PickerMode Override the configured picker mode for this call; invalid values fall back to insert.
 
+---@class NgNav.OpenProjectsOption: NgNav.OpenOption
+---@field mode? NgNav.PickerMode Override the configured picker mode for this call; invalid values fall back to insert.
+
 ---@alias NgNav.PickerMode "insert"|"normal"
 
 ---@alias NgNav.SplitOption
@@ -42,7 +44,7 @@
 ---| "tab split" # Open the target in a new tab.
 
 ---@class NgNav.Api
----@field OpenProjects fun(opts?: NgNav.OpenOption) Show a picker for projects in the current Nx/Angular workspace.
+---@field OpenProjects fun(opts?: NgNav.OpenProjectsOption) Show a picker for projects in the current Nx/Angular workspace.
 ---@field ViewTypeCheckBlock fun() Show the Angular template type-check block for the current buffer.
 ---@field GoToComponentStylesheet fun(opts?: NgNav.OpenOption) Open the current component's stylesheet.
 ---@field GoToComponentTemplate fun(opts?: NgNav.OpenOption) Open the current component's template.
@@ -73,7 +75,6 @@ local DEFAULT_CONFIG = {
 			vsplit = "<C-v>",
 			tab = "<C-t>",
 		},
-		disable_multi_select = true,
 	},
 }
 
@@ -98,7 +99,7 @@ end
 ---when their corresponding API method is first called.
 local function setupApi()
 	---Opens the Angular projects picker/view.
-	---@param opts? NgNav.OpenOption
+	---@param opts? NgNav.OpenProjectsOption
 	NgNav.Api.OpenProjects = function(opts)
 		require("wkwk.ng-nav.api.open-projects").openProjects(opts)
 	end
