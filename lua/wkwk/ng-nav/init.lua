@@ -8,9 +8,19 @@
 
 ---@class NgNav.Config
 ---@field workspace? NgNav.Config.Workspace Workspace scanning options; omitted fields use defaults.
+---@field component_files? NgNav.Config.ComponentFiles Options for the related-component-files picker.
 
 ---@class NgNav.Config.Workspace
 ---@field ignored_dirs? string[] Directory names to skip while discovering workspace projects.
+
+---@class NgNav.Config.ComponentFiles
+---@field default_mode? NgNav.PickerMode Initial Snacks picker mode; defaults to `insert`.
+---@field keys? NgNav.ComponentFilesKeys Key bindings for opening a selected file in a split or tab.
+
+---@class NgNav.ComponentFilesKeys
+---@field split? string|false Key to open the selected file in a horizontal split; defaults to `<C-x>`.
+---@field vsplit? string|false Key to open the selected file in a vertical split; defaults to `<C-v>`.
+---@field tab? string|false Key to open the selected file in a new tab; defaults to `<C-t>`.
 
 ---@class NgNav.Cache
 ---@field ignored_dirs table<string, boolean> Internal lookup set of ignored directory names, rebuilt by `setup()`.
@@ -19,17 +29,27 @@
 ---@field split? NgNav.SplitOption Open the target in a horizontal split, vertical split, or new tab.
 ---@field reuseWin? boolean Focus an existing window showing the target instead of opening it again.
 
+---@class NgNav.ComponentFilesOption: NgNav.OpenOption
+---@field show_current? boolean Include the current file in the picker and mark it as current; defaults to false.
+---@field mode? NgNav.PickerMode Override the configured picker mode for this call; invalid values fall back to insert.
+
+---@class NgNav.OpenProjectsOption: NgNav.OpenOption
+---@field mode? NgNav.PickerMode Override the configured picker mode for this call; invalid values fall back to insert.
+
+---@alias NgNav.PickerMode "insert"|"normal"
+
 ---@alias NgNav.SplitOption
 ---| "split" # Open the target in a horizontal split.
 ---| "vsplit" # Open the target in a vertical split.
 ---| "tab split" # Open the target in a new tab.
 
 ---@class NgNav.Api
----@field OpenProjects fun(opts?: NgNav.OpenOption) Show a picker for projects in the current Nx/Angular workspace.
+---@field OpenProjects fun(opts?: NgNav.OpenProjectsOption) Show a picker for projects in the current Nx/Angular workspace.
 ---@field ViewTypeCheckBlock fun() Show the Angular template type-check block for the current buffer.
 ---@field GoToComponentStylesheet fun(opts?: NgNav.OpenOption) Open the current component's stylesheet.
 ---@field GoToComponentTemplate fun(opts?: NgNav.OpenOption) Open the current component's template.
 ---@field GoToComponentClass fun(opts?: NgNav.OpenOption) Find and open component classes referencing the current template.
+---@field GoToComponentFiles fun(opts?: NgNav.ComponentFilesOption) Pick among the current component's class, template, and stylesheets.
 
 local NgNav = {}
 
@@ -47,6 +67,14 @@ NgNav.__Cache = {
 local DEFAULT_CONFIG = {
 	workspace = {
 		ignored_dirs = { "node_modules", ".git", "dist", ".nx", ".angular" },
+	},
+	component_files = {
+		default_mode = "insert",
+		keys = {
+			split = "<C-x>",
+			vsplit = "<C-v>",
+			tab = "<C-t>",
+		},
 	},
 }
 
@@ -71,7 +99,7 @@ end
 ---when their corresponding API method is first called.
 local function setupApi()
 	---Opens the Angular projects picker/view.
-	---@param opts? NgNav.OpenOption
+	---@param opts? NgNav.OpenProjectsOption
 	NgNav.Api.OpenProjects = function(opts)
 		require("wkwk.ng-nav.api.open-projects").openProjects(opts)
 	end
@@ -97,6 +125,12 @@ local function setupApi()
 	---@param opts? NgNav.OpenOption
 	NgNav.Api.GoToComponentClass = function(opts)
 		require("wkwk.ng-nav.api.goto-class").goToComponentClass(opts)
+	end
+
+	---Picks between the current component's class, template, and stylesheets.
+	---@param opts? NgNav.ComponentFilesOption
+	NgNav.Api.GoToComponentFiles = function(opts)
+		require("wkwk.ng-nav.api.goto-component-files").goToComponentFiles(opts)
 	end
 end
 

@@ -146,7 +146,7 @@ end
 ---A Snacks picker display chunk: text followed by an optional highlight group.
 ---@alias NgNav.ProjectPickerChunk { [1]: string, [2]?: string }
 
----@class NgNav.ProjectPickerOptions
+---@class NgNav.ProjectPickerOptions: NgNav.ComponentFilePickerOptions
 ---@field prompt? string Text shown above the project list.
 ---@field format_item fun(project: NgNav.Project, supports_chunks?: boolean): string|NgNav.ProjectPickerChunk[] Formats plain text or Snacks-highlighted chunks.
 
@@ -179,8 +179,9 @@ end
 local M = {}
 
 ---Opens a picker for projects in the nearest Nx or Angular workspace.
----@param opts? NgNav.OpenOption Window options for opening the selected project directory.
+---@param opts? NgNav.OpenProjectsOption Window and picker options for opening the selected project directory.
 M.openProjects = function(opts)
+	opts = opts or {}
 	local current_path = vim.api.nvim_buf_get_name(0)
 	local root = find_nx_root(current_path)
 	if not root then
@@ -193,21 +194,75 @@ M.openProjects = function(opts)
 		return
 	end
 	local angular_icon = get_angular_icon()
+	local component_config = NgNav.Config.component_files or {}
+	local key_config = component_config.keys or {}
 	-- Snacks passes `supports_chunks`; standard vim.ui.select implementations get plain text.
 	-- The cast describes Snacks' extension to vim.ui.select's narrower built-in type.
 	local select = vim.ui.select --[[@as NgNav.ProjectPickerSelect]]
+	local completed = false
+	local function choose(choice, _, split)
+		if completed then
+			return
+		end
+		completed = true
+		if choice and choice.path then
+			local open_opts = vim.tbl_extend("force", opts, split and { split = split } or {})
+			vim.schedule(function()
+				Utils.open_uri(choice.path, open_opts)
+			end)
+		end
+	end
+
+	local function open_in_split(split)
+		return function(picker, item)
+			if not item or not item.item then
+				return
+			end
+			choose(item.item, item.idx, split)
+			picker:close()
+		end
+	end
+
+	local input_keys = {}
+	local list_keys = {}
+	local function bind_split_key(name, action, label)
+		local key = key_config[name]
+		if type(key) == "string" and key ~= "" then
+			input_keys[key] = { action, mode = { "i", "n" }, desc = "Open project in " .. label }
+			list_keys[key] = { action, mode = { "n" }, desc = "Open project in " .. label }
+		end
+	end
+	bind_split_key("split", "ngnav_project_open_split", "horizontal split")
+	bind_split_key("vsplit", "ngnav_project_open_vsplit", "vertical split")
+	bind_split_key("tab", "ngnav_project_open_tab", "a new tab")
+
+	for _, key in ipairs({ "<Tab>", "<S-Tab>", "<C-a>" }) do
+		if input_keys[key] == nil then
+			input_keys[key] = false
+		end
+		if list_keys[key] == nil then
+			list_keys[key] = false
+		end
+	end
+
 	select(projects, {
 		prompt = "Select project:",
 		format_item = function(project, supports_chunks)
 			return format_project(project, angular_icon, supports_chunks)
 		end,
-	}, function(choice)
-		if choice and choice.path then
-			vim.schedule(function()
-				Utils.open_uri(choice.path, opts)
-			end)
-		end
-	end)
+		snacks = {
+			focus = (opts.mode or component_config.default_mode) == "normal" and "list" or "input",
+			actions = {
+				ngnav_project_open_split = open_in_split("split"),
+				ngnav_project_open_vsplit = open_in_split("vsplit"),
+				ngnav_project_open_tab = open_in_split("tab split"),
+			},
+			win = {
+				input = { keys = input_keys },
+				list = { keys = list_keys },
+			},
+		},
+	}, choose)
 end
 
 return M
