@@ -8,9 +8,20 @@
 
 ---@class NgNav.Config
 ---@field workspace? NgNav.Config.Workspace Workspace scanning options; omitted fields use defaults.
+---@field component_files? NgNav.Config.ComponentFiles Options for the related-component-files picker.
 
 ---@class NgNav.Config.Workspace
 ---@field ignored_dirs? string[] Directory names to skip while discovering workspace projects.
+
+---@class NgNav.Config.ComponentFiles
+---@field default_mode? NgNav.PickerMode Initial Snacks picker mode; defaults to `insert`.
+---@field keys? NgNav.ComponentFilesKeys Key bindings for opening a selected file in a split or tab.
+---@field disable_multi_select? boolean Disable Snacks multi-select bindings in this picker; defaults to true.
+
+---@class NgNav.ComponentFilesKeys
+---@field split? string|false Key to open the selected file in a horizontal split; defaults to `<C-x>`.
+---@field vsplit? string|false Key to open the selected file in a vertical split; defaults to `<C-v>`.
+---@field tab? string|false Key to open the selected file in a new tab; defaults to `<C-t>`.
 
 ---@class NgNav.Cache
 ---@field ignored_dirs table<string, boolean> Internal lookup set of ignored directory names, rebuilt by `setup()`.
@@ -21,7 +32,7 @@
 
 ---@class NgNav.ComponentFilesOption: NgNav.OpenOption
 ---@field show_current? boolean Include the current file in the picker and mark it as current; defaults to false.
----@field mode? NgNav.PickerMode Initial picker mode for Snacks; defaults to insert mode.
+---@field mode? NgNav.PickerMode Override the configured picker mode for this call; invalid values fall back to insert.
 
 ---@alias NgNav.PickerMode "insert"|"normal"
 
@@ -54,6 +65,15 @@ NgNav.__Cache = {
 local DEFAULT_CONFIG = {
 	workspace = {
 		ignored_dirs = { "node_modules", ".git", "dist", ".nx", ".angular" },
+	},
+	component_files = {
+		default_mode = "insert",
+		keys = {
+			split = "<C-x>",
+			vsplit = "<C-v>",
+			tab = "<C-t>",
+		},
+		disable_multi_select = true,
 	},
 }
 

@@ -19,7 +19,7 @@ end
 ---@class NgNav.ComponentFilePickerOptions
 ---@field prompt? string Picker title.
 ---@field format_item fun(file: NgNav.ComponentFile, supports_chunks?: boolean): string|NgNav.ComponentFileChunk[] Formats plain text or Snacks-highlighted chunks.
----@field snacks? { focus?: "input"|"list" } Snacks picker configuration; input focus starts in insert mode and list focus starts in normal mode.
+---@field snacks? table<string, any> Snacks-only focus, keymap, and action configuration.
 
 ---@alias NgNav.ComponentFilePickerSelect fun(items: NgNav.ComponentFile[], opts: NgNav.ComponentFilePickerOptions, on_choice: fun(choice?: NgNav.ComponentFile, idx?: integer))
 
@@ -50,7 +50,8 @@ end
 ---@param path string
 ---@return string
 local function get_component_base(path)
-	return path:gsub("%.[^.]+$", "")
+	local base = path:gsub("%.[^.]+$", "")
+	return base
 end
 
 ---@param path string
@@ -127,23 +128,84 @@ local function show_picker(files, opts)
 
 	-- Snacks supports highlighted chunks; standard vim.ui.select receives plain text.
 	local select = vim.ui.select --[[@as NgNav.ComponentFilePickerSelect]]
+	local component_config = require("wkwk.ng-nav").Config.component_files or {}
+	local key_config = component_config.keys or {}
+	local completed = false
+	local function choose(choice, _, split)
+		if completed then
+			return
+		end
+		completed = true
+		if choice then
+			local open_opts = vim.tbl_extend("force", opts, split and { split = split } or {})
+			vim.schedule(function()
+				Utils.open_uri(choice.path, open_opts)
+			end)
+		end
+	end
+
+	local function open_in_split(split)
+		return function(picker, item)
+			if not item or not item.item then
+				return
+			end
+			choose(item.item, item.idx, split)
+			picker:close()
+		end
+	end
+
+	local function split_key(action, label)
+		return { action, mode = { "i", "n" }, desc = "Open selection in " .. label }
+	end
+
+	local input_keys = {}
+	local list_keys = {}
+	local function bind_split_key(name, action, label)
+		local key = key_config[name]
+		if type(key) == "string" and key ~= "" then
+			input_keys[key] = split_key(action, label)
+			list_keys[key] = { action, mode = { "n" }, desc = "Open selection in " .. label }
+		end
+	end
+	bind_split_key("split", "ngnav_open_split", "horizontal split")
+	bind_split_key("vsplit", "ngnav_open_vsplit", "vertical split")
+	bind_split_key("tab", "ngnav_open_tab", "a new tab")
+
+	if component_config.disable_multi_select ~= false then
+		for _, key in ipairs({ "<Tab>", "<S-Tab>", "<C-a>" }) do
+			if input_keys[key] == nil then
+				input_keys[key] = false
+			end
+			if list_keys[key] == nil then
+				list_keys[key] = false
+			end
+		end
+	end
+
 	select(files, {
 		prompt = "Select component file:",
 		-- Snacks maps list focus to normal mode and input focus to insert mode.
-		-- Invalid values intentionally fall back to the usual insert-mode prompt.
+		-- Invalid values intentionally fall back to insert mode.
 		snacks = {
-			focus = opts.mode == "normal" and "list" or "input",
+			focus = (opts.mode or component_config.default_mode) == "normal" and "list" or "input",
+			actions = {
+				ngnav_open_split = open_in_split("split"),
+				ngnav_open_vsplit = open_in_split("vsplit"),
+				ngnav_open_tab = open_in_split("tab split"),
+			},
+			win = {
+				input = {
+					keys = input_keys,
+				},
+				list = {
+					keys = list_keys,
+				},
+			},
 		},
 		format_item = function(file, supports_chunks)
 			return format_file(file, supports_chunks)
 		end,
-	}, function(choice)
-		if choice then
-			vim.schedule(function()
-				Utils.open_uri(choice.path, opts)
-			end)
-		end
-	end)
+	}, choose)
 end
 
 ---@param opts? NgNav.ComponentFilesOption

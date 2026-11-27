@@ -38,7 +38,7 @@ local STYLE_EXTENSIONS = { "scss", "sass", "css", "less" }
 ---@field find_associated_stylesheets fun(filepath: string): string[] Find existing component stylesheets for a TypeScript or HTML file.
 ---@field get_angular_lsp_client fun(bufnr: integer): vim.lsp.Client? Get the Angular language server attached to a buffer, if any.
 ---@field request_client_command fun(command: string, callback: fun(err: lsp.ResponseError?, result: any, client: vim.lsp.Client), on_error?: fun(err: lsp.ResponseError|string)) Send an Angular LSP command and handle its response.
----@field on_angular_workspace fun(callback: fun()) Run a callback only when the current buffer belongs to an Angular workspace.
+---@field on_angular_workspace fun(callback: fun(), on_error?: fun(err: lsp.ResponseError|string)) Run a callback only when the current buffer belongs to an Angular workspace.
 
 local M = {}
 
