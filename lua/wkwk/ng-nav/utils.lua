@@ -36,6 +36,8 @@ local STYLE_EXTENSIONS = { "scss", "sass", "css", "less" }
 ---@field show_document fun(location: lsp.Location|lsp.LocationLink, offset_encoding: string, opts?: NgNav.OpenOption) Open an LSP location, optionally in a split or tab.
 ---@field open_uri fun(path: string, opts?: NgNav.OpenOption) Open a file or directory path, optionally in a split or tab.
 ---@field find_associated_stylesheets fun(filepath: string): string[] Find existing component stylesheets for a TypeScript or HTML file.
+---@field get_component_class_path fun(filepath: string): string? Find the sibling Angular component class for a template or stylesheet.
+---@field get_component_template_path fun(filepath: string): string? Find the component template from its class, template, or stylesheet.
 ---@field get_angular_lsp_client fun(bufnr: integer): vim.lsp.Client? Get the Angular language server attached to a buffer, if any.
 ---@field request_client_command fun(command: string, callback: fun(err: lsp.ResponseError?, result: any, client: vim.lsp.Client), on_error?: fun(err: lsp.ResponseError|string)) Send an Angular LSP command and handle its response.
 ---@field on_angular_workspace fun(callback: fun(), on_error?: fun(err: lsp.ResponseError|string)) Run a callback only when the current buffer belongs to an Angular workspace.
@@ -122,6 +124,69 @@ function M.find_associated_stylesheets(filepath)
 		matches = parse_style_file_urls(sibling_ts)
 	end
 	return matches
+end
+
+---Finds a component class using the current file's conventional sibling name.
+---@param filepath string Component template or stylesheet path.
+---@return string? Existing component class path, or nil when no sibling is found.
+function M.get_component_class_path(filepath)
+	local base = filepath:gsub("%.[^.]+$", "")
+	local candidates = { base .. ".ts" }
+	if filepath:match("%.[^./]+$") and not filepath:match("%.component%.[^.]+$") then
+		candidates = { base .. ".component.ts", base .. ".ts" }
+	end
+	for _, candidate in ipairs(candidates) do
+		if vim.fn.filereadable(candidate) == 1 then
+			return vim.fs.normalize(candidate)
+		end
+	end
+
+	local current_extension = filepath:match("%.([^./]+)$")
+	if current_extension and current_extension:lower() ~= "ts" then
+		local dir = vim.fs.dirname(filepath)
+		for name, entry_type in vim.fs.dir(dir) do
+			if entry_type == "file" and name:match("%.component%.ts$") then
+				local candidate = vim.fs.joinpath(dir, name)
+				local template_path = M.get_component_template_path(candidate)
+				if template_path and vim.fs.normalize(template_path) == vim.fs.normalize(filepath) then
+					return vim.fs.normalize(candidate)
+				end
+				for _, style_path in ipairs(M.find_associated_stylesheets(candidate)) do
+					if vim.fs.normalize(style_path) == vim.fs.normalize(filepath) then
+						return vim.fs.normalize(candidate)
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+
+---Finds a component template from its metadata or conventional sibling name.
+---@param filepath string Component class, template, or stylesheet path.
+---@return string? Existing component template path, or nil when none is found.
+function M.get_component_template_path(filepath)
+	if filepath:match("%.html$") then
+		return vim.fs.normalize(filepath)
+	end
+
+	local class_path = filepath:match("%.ts$") and filepath or M.get_component_class_path(filepath)
+	if class_path and vim.fn.filereadable(class_path) == 1 then
+		local content = table.concat(vim.fn.readfile(class_path), "\n")
+		local template_url = content:match("templateUrl%s*:%s*['\"]([^'\"]+)['\"]")
+		if template_url then
+			local target = vim.fs.normalize(vim.fs.joinpath(vim.fs.dirname(class_path), template_url))
+			if vim.fn.filereadable(target) == 1 then
+				return target
+			end
+		end
+
+		local sibling = class_path:gsub("%.ts$", ".html")
+		if vim.fn.filereadable(sibling) == 1 then
+			return vim.fs.normalize(sibling)
+		end
+	end
+	return nil
 end
 
 ---Retrieves the active Angular language server attached to a buffer.

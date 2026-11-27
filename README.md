@@ -116,6 +116,8 @@ The Snacks picker defaults to **Ctrl-X** to open the highlighted file in a horiz
 | `GoToComponentFiles(opts?)` | Opens a picker for the related class, template, and stylesheet files; optionally includes the current file with `show_current = true`. |
 | `ViewTypeCheckBlock()` | Displays Angular's generated template type-check block in a reusable TypeScript scratch buffer. |
 
+The individual template/class navigation commands also resolve conventional sibling files when invoked from a stylesheet or when Angular Language Server is unavailable. Repeating a navigation command while already in its target file shows an “already there” notice. From a stylesheet, `GoToComponentStylesheet()` opens another associated stylesheet when one exists, otherwise it reports that the current file is already a stylesheet.
+
 ## Project discovery
 
 Project discovery starts from the current file's directory and searches upward for `nx.json` or `angular.json`. If the current buffer has no file path, it starts from Neovim's current working directory.
